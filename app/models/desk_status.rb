@@ -1,0 +1,2 @@
+class DeskStatus < ApplicationRecord
+end
