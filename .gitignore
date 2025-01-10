@@ -8,7 +8,7 @@
 /.bundle
 
 # Ignore all environment files (except templates).
-/.tfvars*
+/secrets.tfvars*
 /.env*
 !/.env*.erb
 
