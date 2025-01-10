@@ -11,7 +11,9 @@ Things you may want to cover:
 * Configuration
 
 * Database creation: PostgreSQL Development with Docker
-* Database initialization: `docker compose up`
+* Database initialization:
+Create image with: `docker build -t postgres_plats .Postgres.Dockerfile`
+Run container with: `docker run -d --name appdb -p 5432:5432 postgres_plats`
 
 
 * How to run the test suite
