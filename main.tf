@@ -31,7 +31,7 @@ resource "azure_app_service_plan" "app_service_plan" {
 
 # Database
 resource "azurerm_postgresql_flexible_server" "db" {
-    name = "booking-desk-db"
+    name = "appdb"
     location = azurerm_resource_group.rg.location
     resource_group_name = azurerm_resource_group.rg.name
     administrator_login = "apiusser"
@@ -43,4 +43,48 @@ resource "azurerm_postgresql_flexible_server" "db" {
     geo_redundant_backup_enabled = false
     public_network_access_enabled = true
     administrator_login_password = var.azure_db_password
+}
+
+# App Service
+resource "azurerm_linux_web_app" "web_app" {
+    name = "booking-desk-app"
+    location = azurerm_resource_group.rg.location
+    resource_group_name = azurerm_resource_group.rg.name
+    service_plan_id = azure_app_service_plan.app_service_plan.id
+    
+    site_config {
+        linux_fx_version = "RUBY|3.1.2"
+    }
+
+    app_settings = {
+        "RAILS_ENV" = "production"
+        "DATABASE_URL" = "postgresql://apiusser:${var.db_password}@${azurerm_postgresql_flexible_server.db.fqdn}:5432/appdb"
+        "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
+    }
+
+    identity {
+        type = "SystemAssigned"
+    }
+}
+
+resource "azurerm_resource_group_template_deployment" "deployment" {
+    name = "booking-desk-app-deployment"
+    resource_group_name = azurerm_resource_group.rg.name
+    template_body = <<TEMPLATE
+    {
+        "resources":[
+            {
+                "type": "Microsoft.Web/sites/sourcecontrols",
+                "apiVersion": "2022-03-01",
+                "name": "${azurerm_linux_web_app.web_app.name}/web",
+                "properties": {
+                    "repoUrl": "https://github.com/djaquels/PlatsBokning.git",
+                    "branch": "main",
+                    "isManualIntegration": true
+                }
+            }
+        ]
+    }
+    TEMPLATE
+    deployment_mode = "Incremental"
 }
