@@ -10,8 +10,15 @@ variable "azure_db_password" {
     sensitive = true
 }
 
+variable "subscription_id" {
+    type = string
+    description = "The subscription id" 
+    sensitive = true
+}
+
 provider "azurerm" {
     features {}
+    subscription_id = var.subscription_id
 }
 
 resource "azurerm_resource_group" "rg" {
@@ -19,7 +26,7 @@ resource "azurerm_resource_group" "rg" {
     location = "West Europe"
 }
 
-resource "azure_app_service_plan" "app_service_plan" {
+resource "azurerm_app_service_plan" "app_service_plan" {
     name = "booking-desk-app-service-plan"
     location = azurerm_resource_group.rg.location
     resource_group_name = azurerm_resource_group.rg.name
@@ -36,13 +43,12 @@ resource "azurerm_postgresql_flexible_server" "db" {
     resource_group_name = azurerm_resource_group.rg.name
     administrator_login = "apiusser"
     administrator_password = var.db_password
-    sku_name = "Standard_B1ms"
+    sku_name = "B_Standard_B1ms"
     storage_mb = 32768
     version = "14" 
-    backup_retention_days = 1
+    backup_retention_days = 7
     geo_redundant_backup_enabled = false
     public_network_access_enabled = true
-    administrator_login_password = var.azure_db_password
 }
 
 # App Service
@@ -50,12 +56,11 @@ resource "azurerm_linux_web_app" "web_app" {
     name = "booking-desk-app"
     location = azurerm_resource_group.rg.location
     resource_group_name = azurerm_resource_group.rg.name
-    service_plan_id = azure_app_service_plan.app_service_plan.id
+    service_plan_id = azurerm_app_service_plan.app_service_plan.id
     
     site_config {
-        linux_fx_version = "RUBY|3.1.2"
+    
     }
-
     app_settings = {
         "RAILS_ENV" = "production"
         "DATABASE_URL" = "postgresql://apiusser:${var.db_password}@${azurerm_postgresql_flexible_server.db.fqdn}:5432/appdb"
@@ -70,7 +75,8 @@ resource "azurerm_linux_web_app" "web_app" {
 resource "azurerm_resource_group_template_deployment" "deployment" {
     name = "booking-desk-app-deployment"
     resource_group_name = azurerm_resource_group.rg.name
-    template_body = <<TEMPLATE
+    deployment_mode = "Incremental"
+    template_content = <<TEMPLATE
     {
         "resources":[
             {
@@ -86,5 +92,4 @@ resource "azurerm_resource_group_template_deployment" "deployment" {
         ]
     }
     TEMPLATE
-    deployment_mode = "Incremental"
 }
