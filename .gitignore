@@ -33,5 +33,5 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 # Ignore terraform registry
-./.terraform*
+./.terraform/*
 .terraform/*
