@@ -18,7 +18,7 @@ sudo apt-get install libpq-dev
 * Database creation: PostgreSQL Development with Docker
 * Database initialization:
 Create image with: `docker build -t postgres_plats .Postgres.Dockerfile`
-Run container with: `docker run -d --name appdb -p 5432:5432 postgres_plats`
+Run container with: `docker run -d --name appdb -p 5432:5432 -v appdb_data:/var/lib/postgresql/data postgres_plats`
 
 
 * How to run the test suite
