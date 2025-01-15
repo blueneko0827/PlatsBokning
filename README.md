@@ -21,5 +21,11 @@ Run container with: `docker run -d --name appdb -p 5432:5432 postgres_plats`
 * Services (job queues, cache servers, search engines, etc.)
 
 * Deployment instructions
+With terraform
+´´´
+terraform init
+terraform validate
+terraform apply -var-file="secrets.tfvars"
+´´´
 
 * ...
