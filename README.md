@@ -10,6 +10,11 @@ Things you may want to cover:
 
 * Configuration
 
+For Unix-Like <Ubuntu> install postgres libs for dev:
+
+sudo apt-get install libpq-dev
+
+
 * Database creation: PostgreSQL Development with Docker
 * Database initialization:
 Create image with: `docker build -t postgres_plats .Postgres.Dockerfile`
