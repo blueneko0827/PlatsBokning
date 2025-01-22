@@ -36,6 +36,21 @@ resource "azurerm_app_service_plan" "app_service_plan" {
     }
 }
 
+# Firewalls for localtesting
+resource "azurerm_postgresql_flexible_server_firewall_rule" "azure" {
+  name             = "allow-access-from-azure-services"
+  server_id        = azurerm_postgresql_flexible_server.main.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
+}
+
+resource "azurerm_postgresql_flexible_server_firewall_rule" "all" {
+  name             = "allow-all-ips"
+  server_id        = azurerm_postgresql_flexible_server.main.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "255.255.255.255"
+}
+
 # Database
 resource "azurerm_postgresql_flexible_server" "db" {
     name = "appdb"
