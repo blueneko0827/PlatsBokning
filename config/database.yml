@@ -13,7 +13,7 @@ development:
   adapter: postgresql
   database: app
   username: api
-  password: <%= ENV['PLATS_API_PASSWORD'] %>
+  password: "*sametSis1!"
   host: localhost
   port: 5432
   encoding: unicode
@@ -25,22 +25,3 @@ development:
 test:
   <<: *default
   database: storage/test.sqlite3
-
-
-# SQLite3 write its data on the local filesystem, as such it requires
-# persistent disks. If you are deploying to a managed service, you should
-# make sure it provides disk persistence, as many don't.
-#
-# Similarly, if you deploy your application as a Docker container, you must
-# ensure the database is located in a persisted volume.
-production:
-# azure integration
-  adapter: postgresql
-  encoding: unicode
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  database: <%= ENV['DB_NAME'] %>
-  username: <%= ENV['DB_USER'] %>
-  password: <%= ENV['DB_PASSWORD'] %>
-  host: <%= ENV['DB_HOST'] %>
-  port: <%= ENV.fetch('DB_PORT', 5432) %>
-  sslmode: require

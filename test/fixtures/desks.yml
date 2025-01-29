@@ -3,11 +3,7 @@
 one:
   floor_number: 1
   desk_number: MyString
-  status: one
-  fixed_employee: one
 
 two:
   floor_number: 1
   desk_number: MyString
-  status: two
-  fixed_employee: two

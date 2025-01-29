@@ -12,7 +12,7 @@ class ReservationsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create reservation" do
     assert_difference("Reservation.count") do
-      post reservations_url, params: { reservation: { desk_id: @reservation.desk_id, employee_id: @reservation.employee_id, reservation_date: @reservation.reservation_date, reservation_time_from: @reservation.reservation_time_from, reservation_time_to_time: @reservation.reservation_time_to_time } }, as: :json
+      post reservations_url, params: { reservation: { desk_id: @reservation.desk_id, employee_id: @reservation.employee_id, reservation_date: @reservation.reservation_date, reservation_time_from: @reservation.reservation_time_from, reservation_time_to: @reservation.reservation_time_to } }, as: :json
     end
 
     assert_response :created
@@ -24,7 +24,7 @@ class ReservationsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update reservation" do
-    patch reservation_url(@reservation), params: { reservation: { desk_id: @reservation.desk_id, employee_id: @reservation.employee_id, reservation_date: @reservation.reservation_date, reservation_time_from: @reservation.reservation_time_from, reservation_time_to_time: @reservation.reservation_time_to_time } }, as: :json
+    patch reservation_url(@reservation), params: { reservation: { desk_id: @reservation.desk_id, employee_id: @reservation.employee_id, reservation_date: @reservation.reservation_date, reservation_time_from: @reservation.reservation_time_from, reservation_time_to: @reservation.reservation_time_to } }, as: :json
     assert_response :success
   end
 

@@ -37,3 +37,5 @@
 .terraform/*
 .terraform.*
 terraform.*
+./vendor/**
+vendor/**

@@ -12,7 +12,7 @@ class DesksControllerTest < ActionDispatch::IntegrationTest
 
   test "should create desk" do
     assert_difference("Desk.count") do
-      post desks_url, params: { desk: { desk_number: @desk.desk_number, fixed_employee_id: @desk.fixed_employee_id, floor_number: @desk.floor_number, status_id: @desk.status_id } }, as: :json
+      post desks_url, params: { desk: { desk_number: @desk.desk_number, floor_number: @desk.floor_number } }, as: :json
     end
 
     assert_response :created
@@ -24,7 +24,7 @@ class DesksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update desk" do
-    patch desk_url(@desk), params: { desk: { desk_number: @desk.desk_number, fixed_employee_id: @desk.fixed_employee_id, floor_number: @desk.floor_number, status_id: @desk.status_id } }, as: :json
+    patch desk_url(@desk), params: { desk: { desk_number: @desk.desk_number, floor_number: @desk.floor_number } }, as: :json
     assert_response :success
   end
 

@@ -5,11 +5,11 @@ one:
   employee: one
   reservation_date: 2025-01-09
   reservation_time_from: 2025-01-09 16:17:49
-  reservation_time_to_time: MyString
+  reservation_time_to: MyString
 
 two:
   desk: two
   employee: two
   reservation_date: 2025-01-09
   reservation_time_from: 2025-01-09 16:17:49
-  reservation_time_to_time: MyString
+  reservation_time_to: MyString
