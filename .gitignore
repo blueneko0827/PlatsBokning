@@ -39,3 +39,5 @@
 terraform.*
 ./vendor/**
 vendor/**
+terraform/**/.terraform/**
+terraform/repository/.terraform/**
