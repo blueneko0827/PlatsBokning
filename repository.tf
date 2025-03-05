@@ -1,8 +1,3 @@
-provider "aws" {
-  region = "eu-central-1"
-}
-
-
 resource "aws_ecr_repository" "app" {
   name                 = "platsbokning"
   image_tag_mutability = "MUTABLE"
