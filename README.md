@@ -34,3 +34,45 @@ terraform apply -var-file="secrets.tfvars"
 ´´´
 
 * ...
+
+
+## Deployment with Azure Serives
+
+Create ECR repository for docker image
+´´´
+cd terraform/repository
+terraform init
+terraform apply
+terraform output ecr_repository_url
+´´´
+
+Build image and publish to ECR repository
+´´´
+docker build -t platsbokning:latest .
+aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin [YOUR_ACCOUNT_ID].dkr.ecr.eu-west-1.amazonaws.com
+docker tag platsbokning:latest [ACCOUNT_ID].dkr.ecr.eu-west-1.amazonaws.com/platsbokning:latest
+docker push [ACCOUNT_ID].dkr.ecr.eu-west-1.amazonaws.com/platsbokning:latest
+´´´
+
+Update Image - Release deploy
+´´´
+aws ecr describe-images --repository-name platsbokning
+docker build -t platsbokning:latest .
+docker tag platsbokning:latest [ACCOUNT_ID].dkr.ecr.[REGION_ID].amazonaws.com/platsbokning:latest
+docker push [ACCOUNT_ID].dkr.ecr.[REGION_ID].amazonaws.com/platsbokning:latest
+aws ecs update-service --cluster platsbokning-cluster --service platsbokning-service --force-new-deployment
+´´´
+
+Get ECR repo URL
+´´´
+ECR_REPO=$(terraform output -raw ecr_repository_url)
+echo $ECR_REPO
+´´´
+
+Clean Resources
+´´´
+sh clean.sh
+´´´
+
+Redeploy
+sh redeploy.sh

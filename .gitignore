@@ -41,3 +41,5 @@ terraform.*
 vendor/**
 terraform/**/.terraform/**
 terraform/repository/.terraform/**
+.terraform.*
+.terraform.lock.hcl

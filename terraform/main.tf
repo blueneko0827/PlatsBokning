@@ -3,10 +3,15 @@ provider "aws" {
   region = "eu-central-1" # Change to your preferred region
 }
 
+# Import local modules
+module "repository" {
+  source = "./repository"
+}
+
 # VPC Configuration
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "3.14.2"
+  version = "5.0.0"  # Updated version
 
   name = "platsbokning-vpc"
   cidr = "10.0.0.0/16"
@@ -42,11 +47,6 @@ resource "aws_security_group" "rds" {
   }
 }
 
-resource "random_password" "db_password" {
-  length  = 16
-  special = false
-}
-
 resource "aws_db_subnet_group" "private" {
   name       = "platsbokning-db-subnet-group"
   subnet_ids = module.vpc.private_subnets
@@ -60,7 +60,7 @@ resource "aws_db_instance" "postgres" {
   instance_class         = "db.t3.micro"
   db_name                = "platsbokning_production"
   username               = "platsbokning"
-  password               = random_password.db_password.result
+  password               = "*SametSis1!"
   db_subnet_group_name   = aws_db_subnet_group.private.name
   vpc_security_group_ids = [aws_security_group.rds.id]
   skip_final_snapshot    = true
@@ -103,7 +103,7 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([{
     name      = "platsbokning-app"
-    image     = "YOUR_ECR_REPO_URL:latest" # Update with your ECR repo
+    image     = "${module.repository.ecr_repository_url}:latest"
     essential = true
     portMappings = [{
       containerPort = 3000
@@ -111,7 +111,12 @@ resource "aws_ecs_task_definition" "app" {
     }]
     environment = [
       { name = "RAILS_ENV", value = "production" },
-      { name = "DATABASE_URL", value = "postgresql://${aws_db_instance.postgres.username}:${random_password.db_password.result}@${aws_db_instance.postgres.endpoint}/${aws_db_instance.postgres.db_name}" }
+      { name = "DB_HOST", value = aws_db_instance.postgres.address },
+      { name = "DB_PORT", value = tostring(aws_db_instance.postgres.port) },
+      { name = "DB_PASSWORD", value = "*SametSis1!" },
+      { name = "DB_NAME", value = aws_db_instance.postgres.db_name },
+      { name = "DB_USERNAME", value = aws_db_instance.postgres.username },
+      { name = "DATABASE_URL", value = "postgresql://${aws_db_instance.postgres.username}:*SametSis1!@${aws_db_instance.postgres.endpoint}/${aws_db_instance.postgres.db_name}" }
     ]
     secrets = [
       # Add other secrets here if needed
@@ -205,8 +210,37 @@ resource "aws_iam_role" "ecs_execution" {
       }
     }]
   })
+}
 
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-  ]
+# Attach policies using dedicated resources
+resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# Add additional policies like this:
+resource "aws_iam_role_policy_attachment" "ecr_access" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+}
+
+resource "aws_iam_role_policy" "ecr_pull" {
+  name = "ecr-pull-policy"
+  role = aws_iam_role.ecs_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      }
+    ]
+  })
 }

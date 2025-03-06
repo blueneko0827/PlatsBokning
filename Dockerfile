@@ -20,7 +20,11 @@ RUN apt-get update -qq && \
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development"
+    DB_NAME="platsbokning_production" \
+    DB_USERNAME="platsbokning" \
+    DB_PASSWORD="*SametSis1!" \
+    DB_PORT="5432" \
+    BUNDLE_WITHOUT="development" 
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build
@@ -63,4 +67,5 @@ ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD ["./bin/rails", "server"]
+#CMD ["./bin/rails", "server"]
+CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
