@@ -1,6 +1,6 @@
 # README
 
-System for booking desks in a shared office space with Azure deployment.
+System for booking desks in a shared office space with AWS deployment.
 
 Things you may want to cover:
 
