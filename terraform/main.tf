@@ -1,158 +1,59 @@
-# main.tf
 provider "aws" {
-  region = "eu-central-1" # Change to your preferred region
+  region = var.region
 }
 
-# Import local modules
-module "repository" {
-  source = "./repository"
+# VPC
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
 }
 
-# VPC Configuration
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "5.0.0"  # Updated version
-
-  name = "platsbokning-vpc"
-  cidr = "10.0.0.0/16"
-
-  azs             = ["eu-central-1a", "eu-central-1b"]
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24"]
-  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
-
-  enable_nat_gateway     = true
-  single_nat_gateway     = true
-  one_nat_gateway_per_az = false
-  enable_dns_hostnames   = true
+# Subnets
+resource "aws_subnet" "public_subnet" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  map_public_ip_on_launch = true
 }
 
-# RDS PostgreSQL Database
-resource "aws_security_group" "rds" {
-  name        = "platsbokning-rds-sg"
-  description = "Security group for RDS PostgreSQL"
-  vpc_id      = module.vpc.vpc_id
+resource "aws_subnet" "private_subnet" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.2.0/24"
+}
+
+# Internet Gateway and Routing
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.main.id
+}
+
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+}
+
+resource "aws_route_table_association" "public_assoc" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+# Security Groups
+resource "aws_security_group" "rails_sg" {
+  name        = "rails_sg"
+  description = "Allow SSH and Rails HTTP"
+  vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-resource "aws_db_subnet_group" "private" {
-  name       = "platsbokning-db-subnet-group"
-  subnet_ids = module.vpc.private_subnets
-}
-
-resource "aws_db_instance" "postgres" {
-  identifier             = "platsbokning-db"
-  allocated_storage      = 20
-  engine                 = "postgres"
-  engine_version         = "14.4"
-  instance_class         = "db.t3.micro"
-  db_name                = "platsbokning_production"
-  username               = "platsbokning"
-  password               = "*SametSis1!"
-  db_subnet_group_name   = aws_db_subnet_group.private.name
-  vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot    = true
-  storage_encrypted      = true
-  publicly_accessible    = false
-}
-
-# ECS Configuration
-resource "aws_security_group" "ecs" {
-  name        = "platsbokning-ecs-sg"
-  description = "Security group for ECS tasks"
-  vpc_id      = module.vpc.vpc_id
 
   ingress {
-    from_port       = 3000
-    to_port         = 3000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_ecs_cluster" "main" {
-  name = "platsbokning-cluster"
-}
-
-resource "aws_ecs_task_definition" "app" {
-  family                   = "platsbokning-task"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = 512
-  memory                   = 1024
-  execution_role_arn       = aws_iam_role.ecs_execution.arn
-
-  container_definitions = jsonencode([{
-    name      = "platsbokning-app"
-    image     = "${module.repository.ecr_repository_url}:latest"
-    essential = true
-    portMappings = [{
-      containerPort = 3000
-      hostPort      = 3000
-    }]
-    environment = [
-      { name = "RAILS_ENV", value = "production" },
-      { name = "DB_HOST", value = aws_db_instance.postgres.address },
-      { name = "DB_PORT", value = tostring(aws_db_instance.postgres.port) },
-      { name = "DB_PASSWORD", value = "*SametSis1!" },
-      { name = "DB_NAME", value = aws_db_instance.postgres.db_name },
-      { name = "DB_USERNAME", value = aws_db_instance.postgres.username },
-      { name = "DATABASE_URL", value = "postgresql://${aws_db_instance.postgres.username}:*SametSis1!@${aws_db_instance.postgres.endpoint}/${aws_db_instance.postgres.db_name}" }
-    ]
-    secrets = [
-      # Add other secrets here if needed
-    ]
-  }])
-}
-
-resource "aws_ecs_service" "app" {
-  name            = "platsbokning-service"
-  cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    subnets          = module.vpc.private_subnets
-    security_groups  = [aws_security_group.ecs.id]
-    assign_public_ip = false
-  }
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.app.arn
-    container_name   = "platsbokning-app"
-    container_port   = 3000
-  }
-}
-
-# Application Load Balancer
-resource "aws_security_group" "alb" {
-  name        = "platsbokning-alb-sg"
-  description = "Security group for ALB"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 3000
+    to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -165,82 +66,86 @@ resource "aws_security_group" "alb" {
   }
 }
 
-resource "aws_lb" "main" {
-  name               = "platsbokning-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = module.vpc.public_subnets
-}
+resource "aws_security_group" "rds_sg" {
+  name   = "rds_sg"
+  vpc_id = aws_vpc.main.id
 
-resource "aws_lb_target_group" "app" {
-  name        = "platsbokning-tg"
-  port        = 80
-  protocol    = "HTTP"
-  target_type = "ip"
-  vpc_id      = module.vpc.vpc_id
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.rails_sg.id]
+  }
 
-  health_check {
-    path = "/"
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = 80
-  protocol          = "HTTP"
+# DB Subnet Group
+resource "aws_db_subnet_group" "default" {
+  name       = "rails-db-subnet-group"
+  subnet_ids = [aws_subnet.private_subnet.id]
 
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.app.arn
+  tags = {
+    Name = "Rails DB subnet group"
   }
 }
 
-# IAM Roles
-resource "aws_iam_role" "ecs_execution" {
-  name = "platsbokning-ecs-execution-role"
+# RDS Instance
+resource "aws_db_instance" "rails_db" {
+  identifier              = "railsdb"
+  engine                  = "postgres"
+  engine_version          = "15.4"
+  instance_class          = "db.t3.micro"
+  allocated_storage       = 20
+  name                    = var.db_name
+  username                = var.db_username
+  password                = var.db_password
+  db_subnet_group_name    = aws_db_subnet_group.default.name
+  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
+  skip_final_snapshot     = true
+  publicly_accessible     = false
+  multi_az                = false
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Action = "sts:AssumeRole",
-      Effect = "Allow",
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
-      }
-    }]
-  })
+  tags = {
+    Name = "RailsPostgresDB"
+  }
 }
 
-# Attach policies using dedicated resources
-resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
-  role       = aws_iam_role.ecs_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+# EC2 User Data Template
+data "template_file" "ec2_userdata" {
+  template = file("${path.module}/ec2-userdata.sh")
+
+  vars = {
+    db_host     = aws_db_instance.rails_db.address
+    db_name     = var.db_name
+    db_username = var.db_username
+    db_password = var.db_password
+  }
 }
 
-# Add additional policies like this:
-resource "aws_iam_role_policy_attachment" "ecr_access" {
-  role       = aws_iam_role.ecs_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
-}
+# EC2 Spot Instance
+resource "aws_instance" "rails_server" {
+  ami                         = "ami-0bb2c8b6c0b349fa2" # Ubuntu 22.04 LTS (EU North 1)
+  instance_type               = "t3.small"
+  subnet_id                   = aws_subnet.public_subnet.id
+  key_name                    = var.key_name
+  vpc_security_group_ids      = [aws_security_group.rails_sg.id]
+  user_data                   = data.template_file.ec2_userdata.rendered
+  instance_interruption_behavior = "terminate"
+  instance_market_options {
+    market_type = "spot"
+    spot_options {
+      max_price = "0.02"
+      spot_instance_type = "one-time"
+    }
+  }
 
-resource "aws_iam_role_policy" "ecr_pull" {
-  name = "ecr-pull-policy"
-  role = aws_iam_role.ecs_execution.id
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage"
-        ],
-        Effect   = "Allow",
-        Resource = "*"
-      }
-    ]
-  })
+  tags = {
+    Name = "RailsAppEC2-Spot"
+  }
 }

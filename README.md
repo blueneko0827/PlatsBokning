@@ -36,43 +36,28 @@ terraform apply -var-file="secrets.tfvars"
 * ...
 
 
-## Deployment with Azure Serives
+## Deployment with AWS Serives
 
-Create ECR repository for docker image
-´´´
-cd terraform/repository
-terraform init
-terraform apply
-terraform output ecr_repository_url
-´´´
+The service can be deployed to a AWS project following the below architecture.
 
-Build image and publish to ECR repository
-´´´
-docker build -t platsbokning:latest .
-aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin [YOUR_ACCOUNT_ID].dkr.ecr.eu-west-1.amazonaws.com
-docker tag platsbokning:latest [ACCOUNT_ID].dkr.ecr.eu-west-1.amazonaws.com/platsbokning:latest
-docker push [ACCOUNT_ID].dkr.ecr.eu-west-1.amazonaws.com/platsbokning:latest
-´´´
+- An EC2 Instance running a docker image of the rails app
+- The app connects through a private secured Amazon RDS PostgreSQL database.
 
-Update Image - Release deploy
-´´´
-aws ecr describe-images --repository-name platsbokning
-docker build -t platsbokning:latest .
-docker tag platsbokning:latest [ACCOUNT_ID].dkr.ecr.[REGION_ID].amazonaws.com/platsbokning:latest
-docker push [ACCOUNT_ID].dkr.ecr.[REGION_ID].amazonaws.com/platsbokning:latest
-aws ecs update-service --cluster platsbokning-cluster --service platsbokning-service --force-new-deployment
-´´´
+![alt text](diagram.png "Title")
 
-Get ECR repo URL
-´´´
-ECR_REPO=$(terraform output -raw ecr_repository_url)
-echo $ECR_REPO
-´´´
+## Deployment Scripts
+#### Building the docker image
+Before creating the image a docker hub account must be created
+and within a repository for the rails app. Then login using the following command-
+```
+docker login
 
-Clean Resources
-´´´
-sh clean.sh
-´´´
+```
 
-Redeploy
-sh redeploy.sh
+Then run the <b>build-image-sh</b> script for create the docker container with the corresponding tag and push it to docker hub.
+<i>please note that the repository name must be updated
+for the one created in the prior step.</i>
+
+### Deploy to AWS with Terraform
+
+Within the ./terraform folder there are the scripts for the architecture mentioned above.
