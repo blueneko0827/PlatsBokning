@@ -12,9 +12,9 @@ variable "db_name" {
 }
 
 variable "db_username" {
-  default = "rails"
+  default = "platsbokning"
 }
 
 variable "db_password" {
-  default = "secret123"
+  default = "*SametSis1!"
 }
