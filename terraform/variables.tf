@@ -4,6 +4,7 @@ variable "region" {
 
 variable "key_name" {
   description = "Name of the EC2 key pair"
+  default = "plats-key"
   type        = string
 }
 

@@ -139,7 +139,7 @@ data "template_file" "ec2_userdata" {
 
 # EC2 Spot Instance
 resource "aws_instance" "rails_server" {
-  ami                         = "ami-0bb2c8b6c0b349fa2" # Ubuntu 22.04 LTS (EU North 1)
+  ami                         = "ami-051561e0bf48efb5a" # Ubuntu eu-north-1
   instance_type               = "t3.small"
   subnet_id                   = aws_subnet.public_subnet.id
   key_name                    = var.key_name
