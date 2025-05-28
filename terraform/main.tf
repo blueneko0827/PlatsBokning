@@ -14,9 +14,16 @@ resource "aws_subnet" "public_subnet" {
   map_public_ip_on_launch = true
 }
 
-resource "aws_subnet" "private_subnet" {
+resource "aws_subnet" "private_subnet_a" {
   vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.2.0/24"
+  availability_zone = "eu-north-1a"
+  cidr_block = "10.0.11.0/24"
+}
+
+resource "aws_subnet" "private_subnet_b" {
+  vpc_id     = aws_vpc.main.id
+  availability_zone = "eu-north-1b"
+  cidr_block = "10.0.12.0/24"
 }
 
 # Internet Gateway and Routing
@@ -88,7 +95,9 @@ resource "aws_security_group" "rds_sg" {
 # DB Subnet Group
 resource "aws_db_subnet_group" "default" {
   name       = "rails-db-subnet-group"
-  subnet_ids = [aws_subnet.private_subnet.id]
+  subnet_ids = [
+    aws_subnet.private_subnet_a.id,
+    aws_subnet.private_subnet_b.id]
 
   tags = {
     Name = "Rails DB subnet group"
@@ -99,10 +108,10 @@ resource "aws_db_subnet_group" "default" {
 resource "aws_db_instance" "rails_db" {
   identifier              = "railsdb"
   engine                  = "postgres"
-  engine_version          = "15.4"
+  engine_version          = "17.4"
   instance_class          = "db.t3.micro"
   allocated_storage       = 20
-  name                    = var.db_name
+  db_name                    = var.db_name
   username                = var.db_username
   password                = var.db_password
   db_subnet_group_name    = aws_db_subnet_group.default.name
@@ -136,7 +145,6 @@ resource "aws_instance" "rails_server" {
   key_name                    = var.key_name
   vpc_security_group_ids      = [aws_security_group.rails_sg.id]
   user_data                   = data.template_file.ec2_userdata.rendered
-  instance_interruption_behavior = "terminate"
   instance_market_options {
     market_type = "spot"
     spot_options {
