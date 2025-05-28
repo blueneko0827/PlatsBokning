@@ -33,6 +33,6 @@ production:
   encoding: unicode
   database: <%= ENV['DB_NAME'] %>
   username: <%= ENV['DB_USERNAME'] %>
-  password: <%= ENV['DB_PASSWORD'] %>
+  password: "<%= ENV['DB_PASSWORD'] %>"
   host: <%= ENV['DB_HOST'] %>
   port: <%= ENV['DB_PORT'] %>

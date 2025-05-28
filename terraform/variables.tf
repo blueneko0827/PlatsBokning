@@ -9,7 +9,7 @@ variable "key_name" {
 }
 
 variable "db_name" {
-  default = "platsbokning"
+  default = "platsbokning_production"
 }
 
 variable "db_username" {

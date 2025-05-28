@@ -40,6 +40,8 @@ terraform.*
 ./vendor/**
 vendor/**
 terraform/**/.terraform/**
+terraform/secret.txt
 terraform/repository/.terraform/**
 .terraform.*
 .terraform.lock.hcl
+/config/credentials/production.key
