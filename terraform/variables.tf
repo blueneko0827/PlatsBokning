@@ -17,5 +17,5 @@ variable "db_username" {
 }
 
 variable "db_password" {
-  default = "*SametSis1!"
+  default = "g7Hk3qZ9R4"
 }

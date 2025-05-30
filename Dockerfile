@@ -6,6 +6,7 @@
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 ARG RUBY_VERSION=3.1.2
+ARG SECRET_KEY_BASE
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
@@ -24,7 +25,8 @@ ENV RAILS_ENV="production" \
     DB_USERNAME="platsbokning" \
     DB_PASSWORD="*SametSis1!" \
     DB_PORT="5432" \
-    BUNDLE_WITHOUT="development" 
+    BUNDLE_WITHOUT="development" \
+    SECRET_KEY_BASE=$SECRET_KEY_BASE
 
 # Throw-away build stage to reduce size of final image
 FROM base AS build
@@ -68,4 +70,4 @@ ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
 #CMD ["./bin/rails", "server"]
-CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
+CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0", "-p", "3000"]
